@@ -25,11 +25,6 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.linear_model import Perceptron
 
 #feature selection
-from sklearn.feature_selection import f_classif
-from sklearn.feature_selection import SelectPercentile
-from sklearn.feature_selection import SelectFdr
-from sklearn.feature_selection import SelectFpr
-from sklearn.feature_selection import SelectKBest, f_regression
 from sklearn.ensemble import ExtraTreesClassifier
 
 #cross-validation
@@ -37,286 +32,62 @@ from sklearn.cross_validation import KFold
 from sklearn.cross_validation import LeaveOneOut
 from sklearn.cross_validation import StratifiedKFold
 
-#scores
-from sklearn.metrics import roc_auc_score
-
-#other decompositions
-from sklearn.decomposition import PCA
-from sklearn.decomposition import RandomizedPCA
-from sklearn.lda import LDA
-from sklearn.feature_selection import RFECV
-from sklearn.feature_selection import RFE
-
 #pipelining
 from sklearn.pipeline import Pipeline, FeatureUnion
-
-from .features import (PearsonCorrelationSelection,
-                       BhatacharyyaGaussianSelection,
-                       WelchTestSelection)
-
-from .threshold import Threshold
 from .utils.strings import append_to_keys
+
+#instances
+from darwin.instance import SelectorInstantiator, LearnerInstantiator
 
 log = logging.getLogger(__name__)
 
 
-def get_clfmethod(clfmethod, n_feats, **clf_kwargs):
+def get_clfmethod(clfmethod):
     """Return a classification method and a classifiers parameter grid-search
 
     Parameters
     ----------
     clfmethod: str
-    See get_classification_algorithm for possible choices
-
-    n_feats: int
-        Number of features of the input dataset. This is useful for
-        adjusting the feature selection and classification grid search
-        parameters
+        clfmethod posible choices: 'DecisionTreeClassifier', 'RBFSVC', 'PolySVC',
+                                    'LinearSVC', 'GMM', 'RandomForestClassifier',
+                                    'ExtraTreesClassifier', SGDClassifier',
+                                    'Perceptron'
 
     Returns
     -------
     classifier, param_grid
     """
-    classifier = get_classification_algorithm(clfmethod, **clf_kwargs)
 
-    param_grid = get_classifier_parameter_grid(clfmethod, n_feats)
-
-    return classifier, param_grid
-
-
-def get_classification_algorithm(clfmethod, **clf_kwargs):
-    """
-    Parameters
-    ----------
-    clfmethod: str
-        clfmethod choices: 'cart', 'rf', 'gmm', 'rbfsvm', 'polysvm', 'linsvm',
-                           'sgd', 'percep'
-
-    Returns
-    -------
-    sklearn.classifier
-    """
-
-    max_iter = clf_kwargs.get('max_iter', 50000)
-
-    #classifiers
-    classifiers = {'cart': tree.DecisionTreeClassifier(),
-
-                   'rf': RandomForestClassifier(max_depth=None,
-                                                min_samples_split=1,
-                                                random_state=None,
-                                                **clf_kwargs),
-
-                   'extratrees': ExtraTreesClassifier(),
-
-                   'gmm': GMM(init_params='wc', n_iter=20, **clf_kwargs),
-
-                   'rbfsvm': SVC(probability=True, max_iter=max_iter,
-                                 class_weight='auto', **clf_kwargs),
-
-                   'polysvm': SVC(probability=True, max_iter=max_iter,
-                                  class_weight='auto', **clf_kwargs),
-
-                   'linsvm': LinearSVC(class_weight='auto', **clf_kwargs),
-
-                   'sgd': SGDClassifier(fit_intercept=True,
-                                        class_weight='auto', shuffle=True,
-                                        n_iter=np.ceil(10**6 / 416),
-                                        loss='modified_huber', **clf_kwargs),
-
-                   'percep': Perceptron(class_weight='auto', **clf_kwargs),
-                   }
-
-    return classifiers[clfmethod]
+    learner_instance = LearnerInstantiator()
+    try:
+        return learner_instance.get_method_with_grid(clfmethod)
+    except:
+        log.exception("Error: {} should be in {}".format(clfmethod, learner_instance.methods))
+        raise
 
 
-def get_classifier_parameter_grid(clfmethod, n_feats):
-    """
-    Parameters
-    ----------
-    clfmethod: str
-        clfmethod choices: 'cart', 'rf', 'gmm', 'rbfsvm', 'polysvm', 'linsvm',
-                           'sgd', 'percep', 'extratrees'
-
-    n_feats: int
-        Number of features in the dataset to adjust feature selection adjust
-        grid_search parameters.
-
-    Returns
-    -------
-    clgrid[clfmethod]
-        The parameter grid.
-    """
-    #Classifiers parameter values for grid search
-    if n_feats < 10:
-        n_feats_step = 2
-    elif n_feats < 100:
-        n_feats_step = 5
-    else:
-        n_feats_step = 20
-
-    max_feats = list(range(1, n_feats, n_feats_step))
-    max_feats.extend([None, 'auto', 'sqrt', 'log2'])
-
-    clgrid = {'cart': dict(criterion=['gini', 'entropy'],
-                           max_depth=[None, 10, 20, 30]),
-
-              'rf': dict(n_estimators=[3, 5, 10, 30, 50, 100],
-                         max_features=max_feats),
-
-              'gmm': dict(n_components=[2, 3, 4, 5],
-                          covariance_type=['spherical', 'tied',
-                                           'diag'],
-                          thresh=[True, False]),
-
-              'extratrees': dict(n_estimators=[10, 30, 50],
-                                 max_features=max_feats),
-
-              # 'svm'  : dict(kernel = ['rbf', 'linear', 'poly'],
-              #               C = np.logspace(-3, 3, num=7, base=10),
-              #               gamma = np.logspace(-3, 3, num=7, base=10),
-              #               coef0 = np.logspace(-3, 3, num=7, base=10)),
-              # 'svm'   : dict(kernel = ['rbf', 'poly'],
-              #                C = np.logspace(-3, 3, num=7, base=10),
-              #                gamma = np.logspace(-3, 3, num=7, base=10),
-              #                coef0=np.logspace(-3, 3, num=7, base=10)),
-
-              'rbfsvm': dict(kernel=['rbf'],
-                             C=np.logspace(-3, 3, num=7, base=10),
-                             gamma=np.logspace(-3, 3, num=7, base=10)),
-
-              'polysvm': dict(kernel=['poly'],
-                              C=np.logspace(-3, 3, num=7, base=10),
-                              degree=np.logspace(-3, 3, num=7, base=10)),
-
-              'linsvm': dict(C=np.logspace(-3, 3, num=7, base=10)),
-
-              'sgd': dict(loss=['hinge', 'modified_huber', 'log'],
-                          penalty=["l1", "l2", "elasticnet"],
-                          alpha=np.logspace(-6, -1, num=6, base=10)),
-
-              'percep': dict(penalty=[None, 'l2', 'l1', 'elasticnet'],
-                             alpha=np.logspace(-3, 3, num=7, base=10)),
-              }
-
-    return clgrid[clfmethod]
-
-
-def get_fsmethod(fsmethod, n_feats, n_jobs=1, **kwargs):
-    """Creates a feature selectin method and a parameter grid-search.
+def get_fsmethod(fsmethod):
+    """Creates a feature selection method and a parameter grid-search.
 
     Parameters
     ----------
     fsmethod: string
-        fsmethod choices: 'rfe', 'rfecv', 'univariate', 'fpr', 'fdr',
-                      'extratrees', 'pca', 'rpca', 'lda', 'anova',
-                      'pearson', 'bhattacharyya', 'welchtest'
-
-    n_feats: int
-        Number of features in the dataset to adjust feature selection
-        grid_search parameters.
-
-    n_jobs: int
-
-    kwargs:
-        @keyword rfe_ste
-        @keyword pca_n_comps
-        @keyword feats_to_sel
-        @keyword threshold_method: see macuto.threshold.Threshold
-        @keyword threshold_value_grid
+        fsmethod choices: 'rfe', 'rfecv', 'selectPercentile', 'selectFpr', 'SelectFdr',
+                      'ExtraTreesClassifier', 'PCA', 'RandomizedPCA', 'LDA', 'SelectKBest',
+                      'PearsonCorrelationSelection', 'BhatacharyyaGaussianSelection',
+                       'WelchTestSelection'
 
     Returns
     -------
     fsmethods[fsmethod], fsgrid[fsmethod]
     """
-    #calculate RFE and RFECV step
-    if n_feats <= 20:
-        rfe_step = 1
-    else:
-        rfe_step = 0.05
 
-    rfe_step = kwargs.get('rfe_step', rfe_step)
-
-    threshold_method = kwargs.get('threshold_method', 'robust')
-
-    threshold_value_grid = kwargs.get('threshold_value_grid',
-                                      [0.90, 0.95, 0.99])
-
-    thresholds = [Threshold(threshold_method, thr_value) for thr_value in
-                  threshold_value_grid]
-
-    #Feature selection procedures
-                 #http://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.RFE.html
-    fsmethods = {'rfe': RFE(estimator=SVC(kernel="linear"),
-                            step=rfe_step, n_features_to_select=2),
-
-                 #http://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.RFE.html
-                 'rfecv': RFECV(estimator=SVC(kernel="linear"),
-                                step=rfe_step, loss_func=roc_auc_score), #cv=3, default; cv=StratifiedKFold(n_subjs, 3)
-
-                 #Univariate Feature selection: http://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.SelectPercentile.html
-                 'univariate': SelectPercentile(f_classif, percentile=5),
-
-                 #http://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.SelectFpr.html
-                 'fpr': SelectFpr(f_classif, alpha=0.05),
-
-                 #http://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.SelectFdr.html
-                 'fdr': SelectFdr(f_classif, alpha=0.05),
-
-                 #http://scikit-learn.org/stable/modules/feature_selection.html
-                 'extratrees': ExtraTreesClassifier(n_estimators=50,
-                                                    max_features='auto',
-                                                    n_jobs=n_jobs,
-                                                    random_state=0), #compute_importances=True (default)
-
-                 'pca': PCA(n_components='mle'),
-                 'rpca': RandomizedPCA(random_state=0),
-                 'lda': LDA(),
-
-                  #http://scikit-learn.org/dev/auto_examples/feature_selection_pipeline.html
-                 'anova': SelectKBest(f_regression, k=n_feats),
-                 'pearson': PearsonCorrelationSelection(thresholds[0]),
-                 'bhattacharyya': BhatacharyyaGaussianSelection(thresholds[0]),
-                 'welchtest': WelchTestSelection(thresholds[0]),
-                 }
-
-    #feature selection parameter values for grid search
-    max_feats = ['auto']
-    if n_feats < 10:
-        feats_to_sel = list(range(2, n_feats, 2))
-        n_comps = list(range(1, n_feats, 2))
-    else:
-        feats_to_sel = list(range(2, 20, 4))
-        n_comps = list(range(1, 30, 4))
-    max_feats.extend(feats_to_sel)
-
-    n_comps_pca = list(n_comps)
-    n_comps_pca.extend(['mle'])
-
-    fsgrid = {'rfe': dict(estimator_params=[dict(C=0.1), dict(C=1),
-                                            dict(C=10)],
-                          n_features_to_select=feats_to_sel),
-              'rfecv': dict(estimator_params=[dict(C=0.1), dict(C=1),
-                                              dict(C=10)]),
-              'univariate': dict(percentile=[1, 3, 5, 10]),
-              'fpr': dict(alpha=[1, 3, 5, 10]),
-              'fdr': dict(alpha=[1, 3, 5, 10]),
-              'extratrees': dict(n_estimators=[1, 3, 5, 10, 30, 50],
-                                 max_features=max_feats),
-              'pca': dict(n_components=n_comps_pca,
-                          whiten=[True, False]),
-              'rpca': dict(n_components=n_comps,
-                           iterated_power = [3, 4, 5],
-                           whiten=[True, False]),
-              'lda': dict(n_components=n_comps),
-              'anova': dict(k=n_comps),
-
-              'pearson': dict(threshold=thresholds),
-              'bhattacharyya': dict(threshold=thresholds),
-              'welchtest': dict(threshold=thresholds),
-              }
-
-    return fsmethods[fsmethod], fsgrid[fsmethod]
+    selector_instance = SelectorInstantiator()
+    try:
+        return selector_instance.get_method_with_grid(fsmethod)
+    except:
+        log.exception("Error: {} should be in {}".format(fsmethod, selector_instance.methods))
+        raise
 
 
 def get_cv_method(targets, cvmethod='10', stratified=True):
