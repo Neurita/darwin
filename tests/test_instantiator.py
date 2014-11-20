@@ -26,27 +26,27 @@ class TestImports(object):
         pytest.raises(IOError, instance.import_pyfile, op.join(MODULE_DIR, 'dontexists'))
 
     def test_import_pyfile(self):
-        imp_inst = instance.import_pyfile(op.join(MODULE_DIR, 'version.py'), 'VERSION')
-        assert('imp_inst' in sys.modules)
-        assert(hasattr(imp_inst, 'import_pyfile'))
+        imp_inst = instance.import_pyfile(op.join(MODULE_DIR, 'version.py'))
+        #assert('imp_inst' in sys.modules)
+        assert(hasattr(imp_inst, 'VERSION'))
 
 
 class TestInstantiator(object):
 
     def test_learner_yaml_instance(self):
-        inst = instance.Instantiator(op.join(MODULE_DIR, 'learners.yml'))
+        inst = instance.MethodInstantiator(op.join(MODULE_DIR, 'learners.yml'))
         learner_item_name = 'LinearSVC'
-        cls = inst.get_class_instance(learner_item_name)
+        cls = inst.get_method_instance(learner_item_name)
         item = inst.get_yaml_item(learner_item_name)
         assert(type(cls).__name__ == item['class'].split('.')[-1])
 
     def test_learner_yaml_raises_ioerror(self):
-        pytest.raises(IOError, instance.Instantiator, 'notexist')
+        pytest.raises(IOError, instance.MethodInstantiator, 'notexist')
 
     def test_learner_yaml_raises_keyerror(self):
-        inst = instance.Instantiator(op.join(MODULE_DIR, 'learners.yml'))
+        inst = instance.MethodInstantiator(op.join(MODULE_DIR, 'learners.yml'))
         learner_item_name = 'NotExist'
-        pytest.raises(KeyError, inst.get_class_instance, learner_item_name)
+        pytest.raises(KeyError, inst.get_method_instance, learner_item_name)
 
 
 class TestLearnerInstantiator(object):
@@ -54,7 +54,7 @@ class TestLearnerInstantiator(object):
     def test_learner_yaml_instance(self):
         inst = instance.LearnerInstantiator()
         learner_item_name = 'LinearSVC'
-        cls = inst.get_class_instance(learner_item_name)
+        cls = inst.get_method_instance(learner_item_name)
         item = inst.get_yaml_item(learner_item_name)
         assert(type(cls).__name__ == item['class'].split('.')[-1])
 
@@ -64,7 +64,7 @@ class TestSelectorInstantiator(object):
     def test_selector_with_class_instance(self):
         selin = instance.SelectorInstantiator()
         selin.method_name = 'RFE'
-        assert(isinstance(selin.default_params, sklearn.svm.SVC))
+        assert(isinstance(selin.default_params['estimator'], sklearn.svm.SVC))
 
     def test_selector_with_function(self):
         selin = instance.SelectorInstantiator()

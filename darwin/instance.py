@@ -66,8 +66,7 @@ def import_module(module_path):
 
 
 def import_pyfile(filepath, mod_name=None):
-    """
-    Imports the contents of filepath as a Python module.
+    """Import the contents of filepath as a Python module.
 
     Parameters
     ----------
@@ -119,16 +118,17 @@ def instantiate_this(class_path, init_args):
     """
     try:
         cls = import_this(class_path)
-        return cls(*init_args)
+        if init_args is None:
+            return cls()
+        else:
+            return cls(*init_args)
     except:
         log.exception('Error instantiating class {} with the arguments {}.'.format(class_path, init_args))
         raise
 
 
 class MethodInstantiator(object):
-
-    """
-    YAML Class Instantiator for classifiers and feature selections methods.
+    """YAML Class Instantiator for classifiers and feature selections methods.
     For now, it only works on classes with the scikit-learn interface.
 
     Parameters
@@ -255,7 +255,9 @@ class MethodInstantiator(object):
 
         try:
             class_data = self.get_yaml_item(method_name)
-            def_parms = class_data['default']
+            def_parms = class_data.get('default', None)
+            if def_parms is None:
+                return None
 
             for parm_name in def_parms:
                 obj = get_if_any_instance(def_parms[parm_name])

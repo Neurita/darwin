@@ -32,7 +32,6 @@ PolySVC:
 LinearSVC:
     class: sklearn.svm.LinearSVC
     default:
-        class_weight: 'auto'
     param_grid:
         C: [0.01, 0.1, 1.0, 10.0, 100.0]
 
