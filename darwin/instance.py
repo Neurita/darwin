@@ -243,6 +243,9 @@ class MethodInstantiator(object):
             If the there is any error importing the class
         """
         def get_if_any_instance(param_def):
+            if not isinstance(param_def, dict):
+                return None
+
             if 'class' in param_def:
                 return instantiate_this(param_def['class'], param_def['default'])
             elif 'function' in param_def:

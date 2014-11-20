@@ -15,7 +15,6 @@ RBFSVC:
         max_iter: max_iter
         class_weight: 'auto'
     param_grid:
-        kernel: 'rbf'
         C: [0.01, 0.1, 1.0, 10.0, 100.0]
         gamma: [0.01, 0.1, 1.0, 10.0, 100.0]
 
@@ -27,7 +26,6 @@ PolySVC:
         max_iter: max_iter
         class_weight: 'auto'
     param_grid:
-        kernel: 'poly'
         C: [0.01, 0.1, 1.0, 10.0, 100.0]
         degree: [0.01, 0.1, 1.0, 10.0, 100.0]
 

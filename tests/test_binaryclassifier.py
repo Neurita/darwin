@@ -13,7 +13,7 @@ def test_binary_classification_with_classification_pipeline():
                                             shuffle=True, random_state=1)
 
     # -- test with darwin
-    classifier_name = 'rbfsvm' #'linsvm'
+    classifier_name = 'RBFSVC' #'linsvm'
     cvmethod = '10'
     n_feats = x.shape[1]
 

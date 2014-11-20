@@ -134,10 +134,7 @@ class ClassificationPipeline(Printable):
         self._pipe, self._params = get_pipeline(self.fsmethod1, self.fsmethod2,
                                                 self.clfmethod,
                                                 self.n_feats,
-                                                self.n_cpus,
-                                                self.fsmethod1_kwargs,
-                                                self.fsmethod2_kwargs,
-                                                self.clfmethod_kwargs)
+                                                self.n_cpus,)
 
         #creating grid search
         self._gs = GridSearchCV(self._pipe, self._params, n_jobs=self.n_cpus,
