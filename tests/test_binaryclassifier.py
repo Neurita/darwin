@@ -21,9 +21,9 @@ def test_binary_classification_with_classification_pipeline():
     results, metrics = pipe.cross_validation(x, y)
     assert(results is not None)
 
-    return results, metrics
+    #return results, metrics
 
-results, metrics = test_binary_classification_with_classification_pipeline()
+#results, metrics = test_binary_classification_with_classification_pipeline()
 # def test_
 #
 #     inst = instance.LearnerInstantiator()
