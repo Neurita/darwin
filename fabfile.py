@@ -126,9 +126,10 @@ def clean(work_dir=CWD):
 def clean_build(work_dir=CWD):
     shutil.rmtree('build', ignore_errors=True)
     shutil.rmtree('dist', ignore_errors=True)
+    shutil.rmtree('.eggs', ignore_errors=True)
     recursive_rmtrees(work_dir, '__pycache__')
     recursive_rmtrees(work_dir, '*.egg-info')
-
+    recursive_rmtrees(work_dir, '.ipynb_checkpoints')
 
 @task
 def clean_pyc(work_dir=CWD):
@@ -144,7 +145,7 @@ def lint():
 
 @task
 def test():
-    local('py.test')
+    local('python setup.py test')
 
 
 @task
