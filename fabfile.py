@@ -141,9 +141,14 @@ def lint():
 
 @task
 def test(filepath=''):
-    cmd = 'python setup.py test'
     if filepath:
-        cmd += ' -a ' + filepath
+        if not op.exists(filepath):
+            print('Error: could not find file {}'.format(filepath))
+            exit(-1)
+        cmd = 'python setup.py test -a ' + filepath
+    else:
+        cmd = 'python setup.py test'
+
     local(cmd)
 
 

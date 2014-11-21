@@ -135,14 +135,22 @@ class MethodInstantiator(object):
     ----------
     ymlpath: str
         Path to a YAML Path with the syntax of learners.yml and selectors.yml
+
+    Public class members
+    --------------------
+    method_name: str
+        The name of the method to be instantiated. Its definition should be in self.ymlpath.
+        It is not mandatory to use it for this class to work.
+        You can use this using the gettter methods as well.
     """
+    method_name = None
 
     def __init__(self, ymlpath=None):
 
         if ymlpath is not None:
             self._ymlpath = ymlpath
 
-        self._method_name = None
+        self.method_name = None
 
         try:
             with open(self._ymlpath, 'rt') as f:
@@ -179,46 +187,104 @@ class MethodInstantiator(object):
             raise
 
     def has_method(self):
-        return self._method_name is not None
+        return self.method_name is not None
 
     @property
     def methods(self):
         return self.yamldata.keys()
 
     def _check_method_name(self):
-        if not self.has_method:
+        if not self.has_method():
             msg = 'The member method_name should be defined before accessing its properties.'
             log.error(msg)
             raise AttributeError(msg)
 
     @property
-    def method_name(self):
-        """The name of the method to be instantiated.
-        It's definition should be in self.ymlpath.
-        """
-        return self._method_name
+    def method_class(self):
+        "Return method's class"
+        self._check_method_name(self)
+        return self.get_yaml_item(self.method_name)['']
 
     @property
     def default_params(self):
         """The default construction parameters indicated by self.method_name"""
         self._check_method_name()
-        return self.get_default_params(self._method_name)
+        return self.get_default_params(self.method_name)
 
     @property
     def param_grid(self):
         """The parameter grid indicated by self.method_name"""
         self._check_method_name()
-        return self.get_param_grid(self._method_name)
+        return self.get_param_grid(self.method_name)
 
     @property
     def instance(self):
         """The method instance indicated by self.method_name"""
         self._check_method_name()
-        return self.get_method_instance(self._method_name)
+        return self.get_method_instance(self.method_name)
 
-    @method_name.setter
-    def method_name(self, method_name):
-        self._method_name = method_name
+    @property
+    def method_class(self):
+        """The class of the method indicated by self.method_name"""
+        self._check_method_name()
+        return self.get_method_class(self.method_name)
+
+    def get_method_class(self, method_name):
+        """Return the class of the method named by method_name
+        Parameters
+        ----------
+        method_name: str
+
+        Returns
+        -------
+        cls: class
+            The class
+
+        Raises
+        ------
+        KeyError
+            If the method_name is not found
+
+        ImportError
+            If the there is any error importing the class
+        """
+        try:
+            return self.get_yaml_item(method_name)['class']
+        except ImportError:
+            log.exception("Error importing module class {}.".format(method_name))
+            raise
+        except:
+            log.exception("Error reading definition for method {} in {}.".format(method_name, self._ymlpath))
+            raise
+
+    def get_param_grid(self, method_name):
+        """Return the defined parameter grid for the given learner class.
+
+        Parameters
+        ----------
+        method_name: str
+
+        Returns
+        -------
+        cls: class
+            The class
+
+        Raises
+        ------
+        KeyError
+            If the method_name is not found
+
+        ImportError
+            If the there is any error importing the class
+        """
+        try:
+            self.get_yaml_item(method_name)['param_grid']
+        except ImportError:
+            log.exception("Error importing module class {}.".format(method_name))
+            raise
+        except:
+            log.exception("Error reading definition for method {} in {}.".format(method_name, self._ymlpath))
+            raise
 
     def get_default_params(self, method_name):
         """Import the needed module for the class and return the instance of a method
@@ -293,41 +359,10 @@ class MethodInstantiator(object):
 
         ImportError
             If the there is any error importing the class
-
         """
         try:
-            class_data = self.get_yaml_item(method_name)
-            return instantiate_this(class_data['class'], self.get_default_params(method_name))
-        except ImportError:
-            log.exception("Error importing module class {}.".format(method_name))
-            raise
-        except:
-            log.exception("Error reading definition for method {} in {}.".format(method_name, self._ymlpath))
-            raise
-
-    def get_param_grid(self, method_name):
-        """Return the defined parameter grid for the given learner class.
-
-        Parameters
-        ----------
-        class_name: str
-
-        Returns
-        -------
-        cls: class
-            The class
-
-        Raises
-        ------
-        KeyError
-            If the method_name is not found
-
-        ImportError
-            If the there is any error importing the class
-        """
-        try:
-            class_data = self.get_yaml_item(method_name)
-            return class_data['param_grid']
+            return instantiate_this(self.get_method_class(method_name),
+                                    self.get_default_params(method_name))
         except ImportError:
             log.exception("Error importing module class {}.".format(method_name))
             raise

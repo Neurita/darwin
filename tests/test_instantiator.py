@@ -49,12 +49,14 @@ def test_learner_yaml_raises_keyerror():
 def test_all_default_learner_instances():
     inst = instance.LearnerInstantiator()
     for cls_name in inst.methods:
-        inst.set_method = cls_name
-        assert(str(type(inst.instance)) == cls_name)
+        inst.method_name = cls_name
+        #assert(str(type(inst.instance)).split()[-1].replace("'", "")[:-1] == inst.method_class)
+        assert(type(inst.instance).__name__ == inst.method_class.split('.')[-1])
 
 
 def test_all_default_selector_instances():
     inst = instance.SelectorInstantiator()
     for cls_name in inst.methods:
-        inst.set_method = cls_name
-        assert(str(type(inst.instance)) == cls_name)
+        inst.method_name = cls_name
+        #assert(str(type(inst.instance)).split()[-1].replace("'", "")[:-1] == inst.method_class)
+        assert(type(inst.instance).__name__ == inst.method_class.split('.')[-1])
