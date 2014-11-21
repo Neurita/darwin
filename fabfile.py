@@ -4,23 +4,21 @@
 Install the packages you have listed in the requirements file you input as
 first argument.
 """
+from   __future__ import (absolute_import, division, print_function, unicode_literals)
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from fabric.api import task, local
+from   fabric.api import task, local
 
 import os
-import os.path as op
+import os.path    as     op
 import subprocess
 import shutil
 
-from glob import glob
-from setuptools import find_packages
-from pip.req import parse_requirements
+from   glob       import glob
+from   setuptools import find_packages
+from   pip.req    import parse_requirements
 
 # Get version without importing, which avoids dependency issues
-module_name = find_packages(exclude=['tests'])[0]
+module_name    = find_packages(exclude=['tests'])[0]
 version_pyfile = op.join(module_name, 'version.py')
 exec(compile(open(version_pyfile).read(), version_pyfile, 'exec'))
 
@@ -32,8 +30,7 @@ IGNORE = ['.git', '.idea']
 
 
 def get_requirements(*args):
-    """Parse all requirements files given and return a list of the
-       dependencies"""
+    """Parse all requirements files given and return a list of the dependencies"""
     install_deps = []
     try:
         for fpath in args:
@@ -45,16 +42,13 @@ def get_requirements(*args):
 
 
 def recursive_glob(base_directory, regex=None):
-    """
-    Uses glob to find all files that match the regex
-    in base_directory.
+    """Uses glob to find all files that match the regex in base_directory.
 
     @param base_directory: string
 
     @param regex: string
 
     @return: set
-
     """
     if regex is None:
         regex = ''
@@ -92,7 +86,7 @@ def install_deps():
         for dep_name in deps:
             cmd = "pip install '{0}'".format(dep_name)
             print('#', cmd)
-            subprocess.check_call(cmd, shell=True)
+            local(cmd)
     except:
         print('Error installing {}'.format(dep_name))
 
@@ -129,7 +123,9 @@ def clean_build(work_dir=CWD):
     shutil.rmtree('.eggs', ignore_errors=True)
     recursive_rmtrees(work_dir, '__pycache__')
     recursive_rmtrees(work_dir, '*.egg-info')
+    recursive_rmtrees(work_dir, '*.egg')
     recursive_rmtrees(work_dir, '.ipynb_checkpoints')
+
 
 @task
 def clean_pyc(work_dir=CWD):
@@ -144,8 +140,11 @@ def lint():
 
 
 @task
-def test():
-    local('python setup.py test')
+def test(filepath=''):
+    cmd = 'python setup.py test'
+    if filepath:
+        cmd += ' -a ' + filepath
+    local(cmd)
 
 
 @task
