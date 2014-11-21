@@ -29,20 +29,32 @@ class TestImports(object):
 
 
 def test_learner_yaml_instance():
-    inst = instance.Instantiator(op.join(MODULE_DIR, 'learners.yml'))
+    inst = instance.MethodInstantiator(op.join(MODULE_DIR, 'learners.yml'))
     learner_item_name = 'LinearSVC'
-    cls = inst.get_class_instance(learner_item_name)
+    cls = inst.get_method_instance(learner_item_name)
     item = inst.get_yaml_item(learner_item_name)
     assert(type(cls).__name__ == item['class'].split('.')[-1])
 
+
 def test_learner_yaml_raises_ioerror():
-    pytest.raises(IOError, instance.Instantiator, 'notexist')
+    pytest.raises(IOError, instance.MethodInstantiator, 'notexist')
+
 
 def test_learner_yaml_raises_keyerror():
-    inst = instance.Instantiator(op.join(MODULE_DIR, 'learners.yml'))
+    inst = instance.MethodInstantiator(op.join(MODULE_DIR, 'learners.yml'))
     learner_item_name = 'NotExist'
-    pytest.raises(KeyError, inst.get_class_instance, learner_item_name)
+    pytest.raises(KeyError, inst.get_method_instance, learner_item_name)
+
 
 def test_all_default_learner_instances():
     inst = instance.LearnerInstantiator()
-    for cls_name in inst.yaml
+    for cls_name in inst.methods:
+        inst.set_method = cls_name
+        assert(str(type(inst.instance)) == cls_name)
+
+
+def test_all_default_selector_instances():
+    inst = instance.SelectorInstantiator()
+    for cls_name in inst.methods:
+        inst.set_method = cls_name
+        assert(str(type(inst.instance)) == cls_name)

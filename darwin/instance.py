@@ -214,7 +214,7 @@ class MethodInstantiator(object):
     def instance(self):
         """The method instance indicated by self.method_name"""
         self._check_method_name()
-        return self.get_learner_instance(self._method_name)
+        return self.get_method_instance(self._method_name)
 
     @method_name.setter
     def method_name(self, method_name):
