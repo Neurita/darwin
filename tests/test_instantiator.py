@@ -31,6 +31,10 @@ class TestImports(object):
 def test_learner_yaml_instance():
     inst = instance.MethodInstantiator(op.join(MODULE_DIR, 'learners.yml'))
     learner_item_name = 'LinearSVC'
+    print(learner_item_name)
+    print(inst.get_default_params(learner_item_name))
+    print(inst.get_param_grid(learner_item_name))
+
     cls = inst.get_method_instance(learner_item_name)
     item = inst.get_yaml_item(learner_item_name)
     assert(type(cls).__name__ == item['class'].split('.')[-1])

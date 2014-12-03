@@ -135,8 +135,7 @@ class BhatacharyyaGaussianDistance(DistanceMeasure):
     """
 
     def __init__(self):
-        super(BhatacharyyaGaussianDistance, self).__init__(self,
-                                                           bhattacharyya_dist)
+        super(BhatacharyyaGaussianDistance, self).__init__(self, bhattacharyya_dist)
 
 
 def pearson_correlation(x, y):
@@ -286,11 +285,11 @@ def welch_ttest(x, y):
                 yi = y[y == i]
                 yj = y[y == j]
 
-                mi = np.mean (xi, axis=0)
-                mj = np.mean (xj, axis=0)
+                mi = np.mean(xi, axis=0)
+                mj = np.mean(xj, axis=0)
 
-                vi = np.var  (xi, axis=0)
-                vj = np.var  (xj, axis=0)
+                vi = np.var (xi, axis=0)
+                vj = np.var (xj, axis=0)
 
                 n_subjsi = len(yi)
                 n_subjsj = len(yj)
@@ -303,6 +302,3 @@ def welch_ttest(x, y):
                 b = np.maximum(b, t)
 
     return b
-
-if __name__ == '__main__':
-    from sklearn.datasets import make_classification

@@ -12,20 +12,7 @@
 # Use this at your own risk!
 #------------------------------------------------------------------------------
 
-import numpy as np
 import logging
-
-#classification
-from sklearn import tree
-from sklearn.svm import SVC
-from sklearn.svm import LinearSVC
-from sklearn.mixture import GMM
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import SGDClassifier
-from sklearn.linear_model import Perceptron
-
-#feature selection
-from sklearn.ensemble import ExtraTreesClassifier
 
 #cross-validation
 from sklearn.cross_validation import KFold
@@ -33,8 +20,8 @@ from sklearn.cross_validation import LeaveOneOut
 from sklearn.cross_validation import StratifiedKFold
 
 #pipelining
-from sklearn.pipeline import Pipeline, FeatureUnion
-from .utils.strings import append_to_keys
+from sklearn.pipeline import Pipeline, FeatureUnion, make_pipeline, make_union
+
 
 #instances
 from darwin.instance import SelectorInstantiator, LearnerInstantiator
@@ -130,79 +117,35 @@ def get_cv_method(targets, cvmethod='10', stratified=True):
     return StratifiedKFold(targets, int(cvmethod))
 
 
-def get_pipeline(fsmethod1, fsmethod2, clfmethod, n_feats, n_cpus):
+def get_pipeline(fsmethods, clfmethod):
     """Returns an instance of a sklearn Pipeline given the parameters
+    fsmethod1 and fsmethod2 will be joined in a FeatureUnion, then it will joined
+    in a Pipeline with clfmethod
 
     Parameters
     ----------
-    fsmethod1: str
-        See get_fsmethod docstring for valid values
+    fsmethods: list of estimators
+        All estimators in a pipeline, must be transformers (i.e. must have a transform method).
 
-    fsmethod2: str
-        See get_fsmethod docstring for valid values
-
-    clfmethod: str
-        See get_clfmethod docstring for valid values
-
-    n_feats: int
-        Number of features
-
-    n_cpus: int
+    clfmethod: classifier
+        The last estimator may be any type (transformer, classifier, etc.).
 
     Returns
     -------
-    pipe, params
+    pipe
     """
-
-    log.info('Preparing pipeline')
-
-    combined_features = None
-    if fsmethod1 is not None or fsmethod2 is not None:
-        #feature selection pipeline
-        fs1n = fsmethod1
-        fs2n = fsmethod2
-
-        #informing user
-        info = 'Selecting features: FSMETHOD1: ' + fs1n
-        if fs2n is not None:
-            info += ', FSMETHOD2: ' + fs2n
-        log.info(info)
-
-        #union of feature selection processes
-        fs1, fs1p = get_fsmethod(fs1n)
-        fs1p = append_to_keys(fs1p, fs1n + '__')
-        if fs2n is not None:
-            fs2, fs2p = get_fsmethod(fs2n)
-            fs2p = append_to_keys(fs2p, fs2n + '__')
-
-            combined_features = FeatureUnion([(fs1n, fs1), (fs2n, fs2)])
-            fsp = dict(list(fs1p.items()) + list(fs2p.items()))
+    feat_union = None
+    if not isinstance(fsmethods, list):
+        if hasattr(fsmethods, 'transform'):
+            feat_union = fsmethods
         else:
-            combined_features = FeatureUnion([(fs1n, fs1)])
-            fsp = fs1p
-
-    #classifier instance
-    classif, clp = get_clfmethod(clfmethod)
-    #clp     = append_to_keys(clgrid[clfmethod], clfmethod + '__')
-
-    #if clfmethod == 'gmm':
-    #    classif.means_ = np.array([X_train[y_train == i].mean(axis=0)
-    #                     for i in xrange(n_class)])
-
-    #creating pipeline
-    if combined_features is not None:
-        pipe = Pipeline([('fs', combined_features), ('cl', classif)])
-
-        #arranging parameters for the whole pipeline
-        clp = append_to_keys(clp, 'cl__')
-        fsp = append_to_keys(fsp, 'fs__')
-        params = dict(list(clp.items()) + list(fsp.items()))
+            raise ValueError('fsmethods expected to be either a list or a transformer method')
     else:
-        #pipe does not work
-        #pipe = Pipeline([ ('cl', classif) ])
-        #arranging parameters for the whole pipeline
-        #clp = append_to_keys(clp, 'cl__')
-        pipe = classif
-        params = clp
+        feat_union = make_union(*fsmethods)
 
-    return pipe, params
+    if feat_union is None:
+        pipe = make_pipeline(clfmethod)
+    else:
+        pipe = make_pipeline(feat_union, clfmethod)
+
+    return pipe

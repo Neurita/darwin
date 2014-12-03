@@ -6,13 +6,14 @@ first argument.
 """
 from   __future__ import (absolute_import, division, print_function, unicode_literals)
 
-from   fabric.api import task, local
+from   fabric.api import task, local, quiet
 
 import os
 import os.path    as     op
 import subprocess
 import shutil
 
+from   fnmatch    import fnmatch
 from   glob       import glob
 from   setuptools import find_packages
 from   pip.req    import parse_requirements
@@ -41,7 +42,14 @@ def get_requirements(*args):
     return [dep for dep in install_deps if dep != 'None']
 
 
-def recursive_glob(base_directory, regex=None):
+def matches_any(reference, pattern_list):
+    for patt in pattern_list:
+        if fnmatch(reference, patt):
+            return True
+    return False
+
+
+def recursive_glob(base_directory, regex=None, ignore_list=IGNORE):
     """Uses glob to find all files that match the regex in base_directory.
 
     @param base_directory: string
@@ -55,14 +63,15 @@ def recursive_glob(base_directory, regex=None):
 
     files = glob(os.path.join(base_directory, regex))
     for path, dirlist, filelist in os.walk(base_directory):
-        for ignored in IGNORE:
+        for ignored in ignore_list:
             try:
                 dirlist.remove(ignored)
             except:
                 pass
 
         for dir_name in dirlist:
-            files.extend(glob(os.path.join(path, dir_name, regex)))
+            files.extend([fn for fn in glob(os.path.join(path, dir_name, regex))
+                          if not matches_any(op.basename(fn), ignore_list)])
 
     return files
 
@@ -140,16 +149,8 @@ def lint():
 
 
 @task
-def test(filepath=''):
-    if filepath:
-        if not op.exists(filepath):
-            print('Error: could not find file {}'.format(filepath))
-            exit(-1)
-        cmd = 'python setup.py test -a ' + filepath
-    else:
-        cmd = 'python setup.py test'
-
-    local(cmd)
+def test():
+    local('python setup.py test')
 
 
 @task
@@ -192,3 +193,27 @@ def sdist():
     local('python setup.py sdist')
     local('python setup.py bdist_wheel upload')
     print(os.listdir('dist'))
+
+
+@task
+def print_init_file(dirpath=CWD):
+    ignore         = ['__init__.py', 'tests', 'install_deps.py', 'fabfile.py']
+    files          = recursive_glob(dirpath, regex='*.py', ignore_list=ignore)
+    laminy_idx     = files[0].split(op.sep).index('laminy') + 2
+
+    files_no_ext   = [ ''.join(f.split('.')[0:-1])           for f in files]
+    relative_names = ['.'.join(f.split(op.sep)[laminy_idx:]) for f in files_no_ext]
+    basenames      = ['.'.join(f.split(op.sep)[-1:])         for f in files_no_ext]
+    try:
+        basenames.remove('__init__')
+    except:
+        pass
+
+    for name in relative_names:
+        print("from .{0} import {1}".format(name, name.split('.')[-1]))
+
+    print("\n")
+    print("__all__ = ['{}'".format(basenames[0]))
+    for name in basenames[1:-1]:
+        print("           '{}',".format(name))
+    print("           '{}']".format(basenames[-1]))

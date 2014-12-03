@@ -102,7 +102,7 @@ def import_pyfile(filepath, mod_name=None):
 
 
 def instantiate_this(class_path, init_args):
-    """Instantiates an object of the class in class_path with the given initializantion arguments.
+    """Instantiates an object of the class in class_path with the given initialization arguments.
 
     Parameters
     ----------
@@ -121,7 +121,7 @@ def instantiate_this(class_path, init_args):
         if init_args is None:
             return cls()
         else:
-            return cls(*init_args)
+            return cls(**init_args)
     except:
         log.exception('Error instantiating class {} with the arguments {}.'.format(class_path, init_args))
         raise
@@ -201,7 +201,7 @@ class MethodInstantiator(object):
 
     @property
     def method_class(self):
-        "Return method's class"
+        """Return method's class"""
         self._check_method_name(self)
         return self.get_yaml_item(self.method_name)['']
 
@@ -278,7 +278,7 @@ class MethodInstantiator(object):
             If the there is any error importing the class
         """
         try:
-            self.get_yaml_item(method_name)['param_grid']
+            return self.get_yaml_item(method_name)['param_grid']
         except ImportError:
             log.exception("Error importing module class {}.".format(method_name))
             raise
@@ -402,8 +402,6 @@ class LearnerInstantiator(MethodInstantiator):
     """
     _ymlpath = op.join(op.dirname(__file__), 'learners.yml')
 
-    #def get_learner():
-    #
 
 class SelectorInstantiator(MethodInstantiator):
     """

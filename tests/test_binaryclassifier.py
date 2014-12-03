@@ -17,7 +17,7 @@ def test_binary_classification_with_classification_pipeline():
     cvmethod = '10'
     n_feats = x.shape[1]
 
-    pipe = ClassificationPipeline(n_feats=n_feats, clfmethod=classifier_name, cvmethod=cvmethod)
+    pipe = ClassificationPipeline(clfmethod=classifier_name, cvmethod=cvmethod)
     results, metrics = pipe.cross_validation(x, y)
     assert(results is not None)
 

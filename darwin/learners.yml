@@ -12,7 +12,7 @@ RBFSVC:
     default:
         kernel: rbf
         probability: true
-        max_iter: max_iter
+        max_iter: 50000
         class_weight: auto
     param_grid:
         C: [0.01, 0.1, 1.0, 10.0, 100.0]
@@ -23,7 +23,7 @@ PolySVC:
     default:
         kernel: poly
         probability: true
-        max_iter: max_iter
+        max_iter: 50000
         class_weight: auto
     param_grid:
         C: [0.01, 0.1, 1.0, 10.0, 100.0]
@@ -73,7 +73,7 @@ ExtraTreesClassifier:
 SGDClassifier:
     class: sklearn.linear_model.SGDClassifier
     default:
-        fit_interecept: True
+        fit_intercept: True
         class_weight: auto
         shuffle: True
         n_iter: 2404

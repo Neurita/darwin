@@ -19,8 +19,7 @@ import scipy.stats as stats
 import logging
 
 from sklearn.feature_selection.base import SelectorMixin
-from sklearn.feature_selection.univariate_selection import (_BaseFilter,
-                                                            _clean_nans)
+from sklearn.feature_selection.univariate_selection import (_BaseFilter, _clean_nans)
 
 from .distance import (welch_ttest, bhattacharyya_dist,
                        DistanceMeasure,
@@ -28,8 +27,7 @@ from .distance import (welch_ttest, bhattacharyya_dist,
                        BhatacharyyaGaussianDistance,
                        WelchTestDistance)
 
-from .threshold import (Threshold, RobustThreshold, RankThreshold,
-                        PercentileThreshold)
+from .threshold import (Threshold, RobustThreshold, RankThreshold, PercentileThreshold)
 from .utils.printable import Printable
 from .storage import save_variables_to_shelve
 
@@ -103,8 +101,7 @@ class PearsonCorrelationSelection(DistanceBasedSelection):
     groups in X, labeled by y.
     """
     def __init__(self, threshold):
-        super(PearsonCorrelationSelection, self).__init__(stats.pearsonr,
-                                                          threshold)
+        super(PearsonCorrelationSelection, self).__init__(stats.pearsonr, threshold)
 
 
 class WelchTestSelection(DistanceBasedSelection):
@@ -121,12 +118,10 @@ class BhatacharyyaGaussianSelection(DistanceBasedSelection):
     """
 
     def __init__(self, threshold):
-        super(BhatacharyyaGaussianSelection, self).__init__(bhattacharyya_dist,
-                                                            threshold)
+        super(BhatacharyyaGaussianSelection, self).__init__(bhattacharyya_dist, threshold)
 
 
-def feature_selection(samples, targets, method, thr=95, dist_function=None,
-                      thr_method='robust'):
+def feature_selection(samples, targets, method, thr=95, dist_function=None, thr_method='robust'):
     """
     Parameters
     ----------

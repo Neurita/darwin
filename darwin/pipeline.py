@@ -24,10 +24,10 @@ from sklearn.grid_search import GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.cross_validation import LeaveOneOut
 
+from .utils.strings import append_to_keys
 from .utils.printable import Printable
-from .sklearn_utils import (get_pipeline,
-                            get_cv_method)
-
+from .sklearn_utils import (get_pipeline, get_cv_method)
+from .instance import (LearnerInstantiator, SelectorInstantiator)
 from .results import (ClassificationResult, ClassificationMetrics,
                       classification_metrics, get_cv_classification_metrics,
                       enlist_cv_results_from_dict, enlist_cv_results)
@@ -79,7 +79,7 @@ class ClassificationPipeline(Printable):
         'loo' for LeaveOneOut
 
     stratified: bool
-        Indicates whether to use a Stratified K-fold approach
+        Indicates whether to use a Stratified K-fold approach (in case it is a K-fold what you choose for cvmethod)
 
     n_cpus: int
         Number of CPUS to be used in the Grid Search
@@ -88,22 +88,18 @@ class ClassificationPipeline(Printable):
         Grid search scoring objective function.
     """
 
-    def __init__(self, clfmethod, n_feats, fsmethod1=None, fsmethod2=None,
-                 fsmethod1_kwargs={}, fsmethod2_kwargs={}, clfmethod_kwargs={},
-                 scaler=StandardScaler(), cvmethod='10', stratified=True,
-                 n_cpus=1, gs_scoring='accuracy'):
+    learner_instantiator = LearnerInstantiator()
+    selector_instantiator = SelectorInstantiator()
 
-        self.n_feats = n_feats
+    def __init__(self, clfmethod, fsmethod1=None, fsmethod2=None, scaler=StandardScaler(), cvmethod='10',
+                 stratified=True, n_cpus=1, gs_scoring='accuracy'):
+
         self.fsmethod1 = fsmethod1
         self.fsmethod2 = fsmethod2
         self.clfmethod = clfmethod
 
-        self.fsmethod1_kwargs = fsmethod1_kwargs
-        self.fsmethod2_kwargs = fsmethod2_kwargs
-        self.clfmethod_kwargs = clfmethod_kwargs
-
         self._pipe = None
-        self._params = None
+        self._paramgrid = None
         self._cv = None
         self._gs = None
         self._results = None
@@ -117,28 +113,48 @@ class ClassificationPipeline(Printable):
 
         self.reset()
 
+    def _append_clsname_to_keys(self, adict, cls):
+        if adict is None:
+            return {}
+        return append_to_keys(adict, cls.__name__)
+
     def reset(self):
         """Remakes the pipeline and the gridsearch objects.
 
         You can use this to modify parameters of this object and this will call
          the necessary functions to remake the pipeline.
         """
-
         self._pipe = None
-        self._params = None
+        self._paramgrid = None
         self._cv = None
         self._gs = None
         self._results = None
         self._metrics = None
 
-        self._pipe, self._params = get_pipeline(self.fsmethod1, self.fsmethod2,
-                                                self.clfmethod,
-                                                self.n_feats,
-                                                self.n_cpus,)
+        try:
+            fsmethods = []
+            self._paramgrid = {}
+            if self.fsmethod1:
+                fsm1, fsm1_params = self.selector_instantiator.get_method_with_grid(self.fsmethod1)
+                self._paramgrid.update(self._append_clsname_to_keys(fsm1_params, type(fsm1)))
 
-        #creating grid search
-        self._gs = GridSearchCV(self._pipe, self._params, n_jobs=self.n_cpus,
-                                verbose=0, scoring=self.gs_scoring)
+            if self.fsmethod2:
+                fsm2, fsm2_params = self.selector_instantiator.get_method_with_grid(self.fsmethod2)
+                self._paramgrid.update(self._append_clsname_to_keys(fsm2_params, type(fsm2)))
+
+            clfm, clfm_params = self.learner_instantiator.get_method_with_grid(self.clfmethod)
+            if fsmethods:
+                self._pipe = get_pipeline(fsmethods, clfm)
+                self._paramgrid.update(self._append_clsname_to_keys(clfm_params, type(clfm)))
+            else:
+                self._pipe = clfm
+                self._paramgrid = clfm_params
+
+            #creating grid search
+            self._gs = GridSearchCV(self._pipe, self._paramgrid, n_jobs=self.n_cpus, verbose=0, scoring=self.gs_scoring)
+        except Exception as exc:
+            log.exception('Error instantiating grid search. {}'.format(str(exc)))
+            raise
 
     def cross_validation(self, samples, targets, cvmethod=None):
         """Performs a cross-validation against a dataset and its labels.
@@ -178,9 +194,7 @@ class ClassificationPipeline(Printable):
             log.debug('Processing fold ' + str(fold_count))
 
             #data cv separation
-            x_train, x_test, \
-            y_train, y_test = samples[train, :], samples[test, :], \
-                              targets[train], targets[test]
+            x_train, x_test, y_train, y_test = samples[train, :], samples[test, :], targets[train], targets[test]
 
             # We correct NaN values in x_train and x_test
             nan_mean = stats.nanmean(x_train)
