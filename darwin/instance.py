@@ -182,7 +182,7 @@ class MethodInstantiator(object):
         """
         try:
             return self.yamldata[method_name]
-        except KeyError as ke:
+        except KeyError:
             log.exception('Could not find item {}.'.format(method_name))
             raise
 
@@ -231,9 +231,11 @@ class MethodInstantiator(object):
 
     def get_method_class(self, method_name):
         """Return the class of the method named by method_name
+
         Parameters
         ----------
         method_name: str
+            The name of the class name of the method.
 
         Returns
         -------
@@ -376,10 +378,7 @@ class MethodInstantiator(object):
         Parameters
         ----------
         method_name: str
-            Name of the the method in learners.yml.
-            See darwin/learners.yml for valid choices.
-            The name of most of the scikit-learn Classification and Regression
-            classes should work.
+            Name of the the method in yaml file.
 
         Returns
         -------
@@ -399,6 +398,12 @@ class MethodInstantiator(object):
 class LearnerInstantiator(MethodInstantiator):
     """
     Instantiator for the internal learners.yml file
+
+    See darwin/learners.yml for valid classification/regression method choices.
+    The name of most of the scikit-learn Classification and Regression
+    classes should work.
+
+    See MethodInstantiator docstring for __init__ parameters doc.
     """
     _ymlpath = op.join(op.dirname(__file__), 'learners.yml')
 
@@ -406,5 +411,9 @@ class LearnerInstantiator(MethodInstantiator):
 class SelectorInstantiator(MethodInstantiator):
     """
     Instantiator for the internal selectors.yml file
+
+    See darwin/selectors.yml for valid feature selection/metric method choices.
+
+    See MethodInstantiator docstring for __init__ parameters doc.
     """
     _ymlpath = op.join(op.dirname(__file__), 'selectors.yml')

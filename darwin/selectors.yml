@@ -49,19 +49,19 @@ ExtraTreesClassifier:
     param_grid:
         n_estimators: [10, 25, 50, 100]
         criterion: ['gini', 'entropy']
-        max_features: ['auto', 'log2', None]
+        max_features: ['auto', 'log2', null]
 
 PCA:
     class: sklearn.decomposition.PCA
     default:
     param_grid:
-        n_components: ['mle', None]
+        n_components: ['mle', null]
 
 RandomizedPCA:
     class: sklearn.decomposition.PCA
     default:
     param_grid:
-        n_components: ['mle', None]
+        n_components: ['mle', null]
 
 LDA:
     class: sklearn.lda.LDA

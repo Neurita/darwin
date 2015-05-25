@@ -4,8 +4,8 @@ DecisionTreeClassifier:
         criterion: entropy
     param_grid:
         criterion: ['gini', 'entropy']
-        max_depth: [None, 10, 20, 30]
-        max_features: ['auto', None]
+        max_depth: [null, 10, 20, 30]
+        max_features: ['auto', null]
 
 RBFSVC:
     class: sklearn.svm.SVC
@@ -49,26 +49,26 @@ GMM:
 RandomForestClassifier:
     class: sklearn.ensemble.RandomForestClassifier
     default:
-        max_depth: None
+        max_depth: null
         n_estimators: 500
         min_samples_split: 1
-        random_state: None
+        random_state: null
     param_grid:
-        max_depth: [1, 5, 10, None]
+        max_depth: [1, 5, 10, null]
         n_estimators: [3, 5, 10, 30, 50, 100]
-        max_features: ['auto', 'log2', None]
+        max_features: ['auto', 'log2', null]
 
 ExtraTreesClassifier:
     class: sklearn.ensemble.ExtraTreesClassifier
     default:
-        max_depth: None
+        max_depth: null
         n_estimators: 50
         min_samples_split: 1
         random_state: 0
     param_grid:
-        max_depth: [1, 5, 10, None]
+        max_depth: [1, 5, 10, null]
         n_estimators: [10, 30, 50]
-        max_features: ['auto', 'log2', None]
+        max_features: ['auto', 'log2', null]
 
 SGDClassifier:
     class: sklearn.linear_model.SGDClassifier
@@ -88,5 +88,15 @@ Perceptron:
     default:
         class_weight: auto
     param_grid:
-        penalty: [None, 'l2', 'l1', 'elasticnet']
+        penalty: [null, 'l2', 'l1', 'elasticnet']
         alpha: [0.01, 0.1, 1.0, 10.0, 100.0]
+
+OneClassSVM:
+    class: sklearn.svm.OneClassSVM
+    default:
+        nu: 0.1
+        gamma: 01
+        max_iter: 50000
+    param_grid:
+        nu: [0.01, 0.1, 0.3, 0.5, 0.8, 1]
+        gamma: [0.01, 0.1, 1.0, 10.0, 100.0]

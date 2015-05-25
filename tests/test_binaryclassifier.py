@@ -1,6 +1,5 @@
 
-import numpy as np
-from sklearn import svm, datasets
+from sklearn import datasets
 
 from darwin.pipeline import ClassificationPipeline
 
@@ -15,7 +14,7 @@ def test_binary_classification_with_classification_pipeline():
     # -- test with darwin
     classifier_name = 'RBFSVC' #'linsvm'
     cvmethod = '10'
-    n_feats = x.shape[1]
+    #n_feats = x.shape[1]
 
     pipe = ClassificationPipeline(clfmethod=classifier_name, cvmethod=cvmethod)
     results, metrics = pipe.cross_validation(x, y)

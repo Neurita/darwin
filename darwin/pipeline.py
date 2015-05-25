@@ -17,20 +17,20 @@
 
 import logging
 
-import numpy as np
-from scipy import stats
-from collections import OrderedDict
-from sklearn.grid_search import GridSearchCV
-from sklearn.preprocessing import StandardScaler
-from sklearn.cross_validation import LeaveOneOut
+import numpy                    as np
+from   scipy                    import stats
+from   collections              import OrderedDict
+from   sklearn.grid_search      import GridSearchCV
+from   sklearn.preprocessing    import StandardScaler
+from   sklearn.cross_validation import LeaveOneOut
 
-from .utils.strings import append_to_keys
-from .utils.printable import Printable
-from .sklearn_utils import (get_pipeline, get_cv_method)
-from .instance import (LearnerInstantiator, SelectorInstantiator)
-from .results import (ClassificationResult, ClassificationMetrics,
-                      classification_metrics, get_cv_classification_metrics,
-                      enlist_cv_results_from_dict, enlist_cv_results)
+from   .utils.strings           import append_to_keys
+from   .utils.printable         import Printable
+from   .sklearn_utils           import (get_pipeline, get_cv_method)
+from   .instance                import (LearnerInstantiator, SelectorInstantiator)
+from   .results                 import (ClassificationResult, ClassificationMetrics,
+                                        classification_metrics, get_cv_classification_metrics,
+                                        enlist_cv_results_from_dict)
 
 log = logging.getLogger(__name__)
 
@@ -50,29 +50,17 @@ class ClassificationPipeline(Printable):
     ----------
 
     clfmethod: str
-        See get_classification_algorithm for possible choices
+        Name of the the method in learners.yml.
+        See darwin/learners.yml for valid choices.
+        The name of most of the scikit-learn Classification and Regression
+        classes should work.
 
     n_feats: int
         Number of features of the input dataset. This is useful for
         adjusting the feature selection and classification grid search
         parameters.
 
-    fsmethod1: str, optional
-        See get_fsmethod for possible choices
-
-    fsmethod2: str, optional
-        See get_fsmethod for possible choices
-
-    fsmethod1_kwargs:
-        See get_fsmethod for possible choices
-
-    fsmethod2_kwargs:
-        See get_fsmethod for possible choices
-
     scaler: sklearn scaler object
-
-    clfmethod_kwargs:
-        See get_classification_algorithm for possible choices
 
     cvmethod  : string or int
         String with a number or number for K, for a K-fold method.
@@ -88,27 +76,26 @@ class ClassificationPipeline(Printable):
         Grid search scoring objective function.
     """
 
-    learner_instantiator = LearnerInstantiator()
+    learner_instantiator  = LearnerInstantiator()
     selector_instantiator = SelectorInstantiator()
 
-    def __init__(self, clfmethod, fsmethod1=None, fsmethod2=None, scaler=StandardScaler(), cvmethod='10',
+    def __init__(self, clfmethod, scaler=StandardScaler(), cvmethod='10',
                  stratified=True, n_cpus=1, gs_scoring='accuracy'):
 
-        self.fsmethod1 = fsmethod1
-        self.fsmethod2 = fsmethod2
-        self.clfmethod = clfmethod
+        self.clfmethod  = clfmethod
+        self.fsmethods  = []
 
-        self._pipe = None
+        self._pipe      = None
         self._paramgrid = None
-        self._cv = None
-        self._gs = None
-        self._results = None
-        self._metrics = None
+        self._cv        = None
+        self._gs        = None
+        self._results   = None
+        self._metrics   = None
 
-        self.cvmethod = cvmethod
+        self.cvmethod   = cvmethod
         self.stratified = stratified
-        self.scaler = scaler
-        self.n_cpus = n_cpus
+        self.scaler     = scaler
+        self.n_cpus     = n_cpus
         self.gs_scoring = gs_scoring
 
         self.reset()
@@ -118,29 +105,36 @@ class ClassificationPipeline(Printable):
             return {}
         return append_to_keys(adict, cls.__name__)
 
+    def add_feature_selection(self, fsmethod_name):
+        """ Appends another feature selection method in self.fsmethods and rebuilds the pipeline calling self.reset().
+
+        Parameters
+        ----------
+        fsmethod_name: str
+            See get_fsmethod for possible choices
+        """
+        self.fsmethods.append(fsmethod_name)
+        self.reset()
+
     def reset(self):
         """Remakes the pipeline and the gridsearch objects.
 
         You can use this to modify parameters of this object and this will call
          the necessary functions to remake the pipeline.
         """
-        self._pipe = None
+        self._pipe      = None
         self._paramgrid = None
-        self._cv = None
-        self._gs = None
-        self._results = None
-        self._metrics = None
+        self._cv        = None
+        self._gs        = None
+        self._results   = None
+        self._metrics   = None
 
         try:
             fsmethods = []
             self._paramgrid = {}
-            if self.fsmethod1:
-                fsm1, fsm1_params = self.selector_instantiator.get_method_with_grid(self.fsmethod1)
-                self._paramgrid.update(self._append_clsname_to_keys(fsm1_params, type(fsm1)))
-
-            if self.fsmethod2:
-                fsm2, fsm2_params = self.selector_instantiator.get_method_with_grid(self.fsmethod2)
-                self._paramgrid.update(self._append_clsname_to_keys(fsm2_params, type(fsm2)))
+            for fsmethod in self.fsmethods:
+                fsm, fsm_params = self.selector_instantiator.get_method_with_grid(fsmethod)
+                self._paramgrid.update(self._append_clsname_to_keys(fsm_params, type(fsm)))
 
             clfm, clfm_params = self.learner_instantiator.get_method_with_grid(self.clfmethod)
             if fsmethods:
@@ -183,10 +177,10 @@ class ClassificationPipeline(Printable):
         #because we will need to identify all sets of results to one fold.
         #If we used lists, we would loose track of folds if something went
         #wrong.
-        preds = OrderedDict()
-        probs = OrderedDict()
-        truth = OrderedDict()
-        best_pars = OrderedDict()
+        preds      = OrderedDict()
+        probs      = OrderedDict()
+        truth      = OrderedDict()
+        best_pars  = OrderedDict()
         importance = OrderedDict()
 
         fold_count = 0
@@ -197,9 +191,9 @@ class ClassificationPipeline(Printable):
             x_train, x_test, y_train, y_test = samples[train, :], samples[test, :], targets[train], targets[test]
 
             # We correct NaN values in x_train and x_test
-            nan_mean = stats.nanmean(x_train)
+            nan_mean  = stats.nanmean(x_train)
             nan_train = np.isnan(x_train)
-            nan_test = np.isnan(x_test)
+            nan_test  = np.isnan(x_test)
 
             #remove Nan values
             x_test[nan_test] = 0
@@ -216,7 +210,7 @@ class ClassificationPipeline(Printable):
             if self.scaler is not None:
                 log.debug('Normalizing data with: {}'.format(str(self.scaler)))
                 x_train = self.scaler.fit_transform(x_train)
-                x_test = self.scaler.transform(x_test)
+                x_test  = self.scaler.transform(x_test)
 
             #do it
             log.debug('Running grid search for fold {}'.format(fold_count))
@@ -225,8 +219,8 @@ class ClassificationPipeline(Printable):
             log.debug('Predicting on test set')
 
             #predictions
-            preds[fold_count] = self._gs.predict(x_test)
-            truth[fold_count] = y_test
+            preds    [fold_count] = self._gs.predict(x_test)
+            truth    [fold_count] = y_test
             best_pars[fold_count] = self._gs.best_params_
 
             #features importances
@@ -242,7 +236,7 @@ class ClassificationPipeline(Printable):
             #best grid-search parameters
             try:
                 probs[fold_count] = self._gs.predict_proba(x_test)
-            except Exception as exc:
+            except:
                 probs[fold_count] = None
 
             log.debug('Result: {} classifies as {}.'.format(y_test, preds[fold_count]))
