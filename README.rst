@@ -3,7 +3,7 @@
 darwin
 ======
 
-Medical Image Analysis and Classification Tools
+Classification Tools
 
 Named after Charles Darwin (1809-1882), who was an English naturalist and geologist, best known for his contributions to evolutionary theory. 
 Through fauna classification he was able to infer the evolutionary theory.
